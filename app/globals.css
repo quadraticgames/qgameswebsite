@@ -1,0 +1,111 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 263 70% 50%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 160 84% 39%;
+    --secondary-foreground: 0 0% 98%;
+    --accent: 24 90% 53%;
+    --accent-foreground: 0 0% 98%;
+    --muted: 240 10% 10%;
+    --muted-foreground: 240 5% 64.9%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 10% 15%;
+    --input: 240 10% 8%;
+    --ring: 240 4.9% 83.9%;
+    --radius: 0.5rem;
+  }
+  
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 263 70% 50%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 160 84% 39%;
+    --secondary-foreground: 0 0% 98%;
+    --accent: 24 90% 53%;
+    --accent-foreground: 0 0% 98%;
+    --muted: 240 10% 10%;
+    --muted-foreground: 240 5% 64.9%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 10% 15%;
+    --input: 240 10% 8%;
+    --ring: 240 4.9% 83.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-space-grotesk font-bold;
+  }
+  .container {
+    @apply px-4 sm:px-6 lg:px-8 mx-auto;
+  }
+}
+
+/* Custom animations */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* Gradient text effect */
+.gradient-text {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent;
+}
+
+/* Glass effect */
+.glass {
+  @apply bg-white/10 backdrop-blur-md border border-white/20 shadow-lg;
+}
+
+/* Custom glowing effects */
+.glow {
+  box-shadow: 0 0 15px 2px theme('colors.primary.DEFAULT');
+}
+
+.glow-accent {
+  box-shadow: 0 0 15px 2px theme('colors.accent.DEFAULT');
+}
+
+.glow-secondary {
+  box-shadow: 0 0 15px 2px theme('colors.secondary.DEFAULT');
+}
+
+/* Grid patterns */
+.grid-pattern {
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, theme('colors.border') 1px, transparent 1px),
+    linear-gradient(to bottom, theme('colors.border') 1px, transparent 1px);
+}
