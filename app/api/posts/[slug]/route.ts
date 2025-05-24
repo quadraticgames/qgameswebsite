@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
+import { marked } from 'marked';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,10 +13,27 @@ interface BlogPost {
   readingTime: string;
   category: string;
   slug: string;
-  content?: string;
+  content: string;
 }
 
 const postsFilePath = path.join(process.cwd(), 'data', 'blog-posts.json');
+
+// Helper function to calculate reading time
+async function calculateReadingTime(markdownContent: string): Promise<string> {
+  if (!markdownContent) {
+    return "0";
+  }
+  // Parse markdown to HTML
+  const html = await marked.parse(markdownContent);
+  // Strip HTML tags to get plain text
+  const plainText = html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  // Count words
+  const words = plainText.split(' ').filter(Boolean).length;
+  // Average reading speed (words per minute)
+  const wpm = 225;
+  const minutes = Math.ceil(words / wpm);
+  return minutes.toString();
+}
 
 async function readPosts(): Promise<BlogPost[]> {
   try {
@@ -66,10 +84,10 @@ export async function PUT(
 ) {
   try {
     const slug = params.slug;
-    const updatedPostData: Partial<BlogPost> = await request.json(); // Use Partial as not all fields might be sent
+    const updatedPostPayload: Partial<Omit<BlogPost, 'slug' | 'readingTime'>> & { content?: string; readingTime?: string; slug?:string } = await request.json();
 
     // Basic validation
-    if (updatedPostData.slug && updatedPostData.slug !== slug) {
+    if (updatedPostPayload.slug && updatedPostPayload.slug !== slug) {
         return NextResponse.json({ message: 'Slug in payload does not match slug in URL. Slug cannot be changed.' }, { status: 400 });
     }
 
@@ -80,9 +98,29 @@ export async function PUT(
       return NextResponse.json({ message: 'Post not found to update' }, { status: 404 });
     }
 
+    const originalPost = posts[postIndex];
+    let newReadingTime = originalPost.readingTime; // Default to original reading time
+
+    // If content is being updated, recalculate reading time
+    if (typeof updatedPostPayload.content === 'string') {
+      newReadingTime = await calculateReadingTime(updatedPostPayload.content);
+    }
+
     // Update the post: merge existing post with new data
     // Ensure slug is not changed from the original
-    posts[postIndex] = { ...posts[postIndex], ...updatedPostData, slug: slug }; 
+    // Explicitly construct the updated post to ensure type safety with BlogPost
+    const updatedPost: BlogPost = {
+      ...originalPost, // Start with the original post
+      ...updatedPostPayload, // Apply updates from payload (excluding slug, readingTime initially)
+      slug: slug, // Ensure original slug is maintained
+      readingTime: newReadingTime, // Apply new or original readingTime
+      // Ensure content is not undefined if it wasn't in payload but is required by BlogPost
+      // If content was not in payload, originalPost.content will be used.
+      // If content was in payload, updatedPostPayload.content will be used.
+      content: typeof updatedPostPayload.content === 'string' ? updatedPostPayload.content : originalPost.content,
+    };
+
+    posts[postIndex] = updatedPost;
 
     await writePosts(posts);
     return NextResponse.json(posts[postIndex]);

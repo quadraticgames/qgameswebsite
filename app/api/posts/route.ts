@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
+import { marked } from 'marked';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,10 +13,27 @@ interface BlogPost {
   readingTime: string;
   category: string;
   slug: string;
-  content?: string; 
+  content: string;
 }
 
 const postsFilePath = path.join(process.cwd(), 'data', 'blog-posts.json');
+
+// Helper function to calculate reading time
+async function calculateReadingTime(markdownContent: string): Promise<string> {
+  if (!markdownContent) {
+    return "0";
+  }
+  // Parse markdown to HTML
+  const html = await marked.parse(markdownContent);
+  // Strip HTML tags to get plain text
+  const plainText = html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  // Count words
+  const words = plainText.split(' ').filter(Boolean).length;
+  // Average reading speed (words per minute)
+  const wpm = 225;
+  const minutes = Math.ceil(words / wpm);
+  return minutes.toString();
+}
 
 async function readPosts(): Promise<BlogPost[]> {
   try {
@@ -54,24 +72,34 @@ export async function GET() {
 // POST handler 
 export async function POST(request: NextRequest) {
   try {
-    const newPostData: BlogPost = await request.json();
+    // Explicitly type the incoming data, content is now mandatory
+    const newPostDataRequest: Omit<BlogPost, 'readingTime'> & { readingTime?: string } = await request.json();
 
     // Basic validation (more can be added)
-    if (!newPostData.title || !newPostData.slug || !newPostData.content) {
+    if (!newPostDataRequest.title || !newPostDataRequest.slug || !newPostDataRequest.content) {
       return NextResponse.json({ message: 'Missing required fields (title, slug, content)' }, { status: 400 });
     }
+
+    const calculatedReadingTime = await calculateReadingTime(newPostDataRequest.content);
+
+    const newPost: BlogPost = {
+      ...newPostDataRequest,
+      date: newPostDataRequest.date || new Date().toISOString().split('T')[0], // Default to today if not provided
+      excerpt: newPostDataRequest.excerpt || newPostDataRequest.content.substring(0, 150) + '...', // Auto-generate excerpt if not provided
+      readingTime: calculatedReadingTime,
+    };
 
     const posts = await readPosts();
 
     // Check for duplicate slug
-    if (posts.some(post => post.slug === newPostData.slug)) {
-      return NextResponse.json({ message: `Slug '${newPostData.slug}' already exists.` }, { status: 409 }); // 409 Conflict
+    if (posts.some(post => post.slug === newPost.slug)) {
+      return NextResponse.json({ message: `Slug '${newPost.slug}' already exists.` }, { status: 409 }); // 409 Conflict
     }
 
-    posts.push(newPostData);
+    posts.push(newPost);
     await writePosts(posts);
 
-    return NextResponse.json(newPostData, { status: 201 }); // 201 Created
+    return NextResponse.json(newPost, { status: 201 }); // 201 Created
   } catch (error) {
     console.error('POST /api/posts - Error:', error);
     if (error instanceof SyntaxError) { // JSON parsing error

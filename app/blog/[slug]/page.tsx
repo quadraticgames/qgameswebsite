@@ -5,7 +5,8 @@ import { Calendar, Clock, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { notFound } from 'next/navigation'; 
+import { notFound } from 'next/navigation';
+import { marked } from 'marked';
 
 interface BlogPostData {
   title: string;
@@ -43,6 +44,8 @@ export default async function BlogPost({ params }: PageProps) {
     notFound(); 
   }
 
+  const htmlContent = await marked.parse(post.content || '');
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <SiteHeader />
@@ -77,7 +80,7 @@ export default async function BlogPost({ params }: PageProps) {
 
             <div 
               className="prose prose-lg dark:prose-invert max-w-none"
-              dangerouslySetInnerHTML={{ __html: post.content.replace(/\n/g, '<br />') }} 
+              dangerouslySetInnerHTML={{ __html: htmlContent }} 
             />
           </article>
         </div>
